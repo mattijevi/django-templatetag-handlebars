@@ -1,4 +1,5 @@
 from django import template
+from django.template.base import TokenType
 from django.conf import settings
 from django.utils import six
 
@@ -34,14 +35,14 @@ def verbatim_tags(parser, token, endtagname):
         if token.contents == endtagname:
             break
 
-        if token.token_type == template.base.TOKEN_VAR:
+        if token.token_type == TokenType.VAR:
             text_and_nodes.append('{{')
             text_and_nodes.append(token.contents)
 
-        elif token.token_type == template.base.TOKEN_TEXT:
+        elif token.token_type == TokenType.TEXT:
             text_and_nodes.append(token.contents)
 
-        elif token.token_type == template.base.TOKEN_BLOCK:
+        elif token.token_type == TokenType.BLOCK:
             try:
                 command = token.contents.split()[0]
             except IndexError:
@@ -58,7 +59,7 @@ def verbatim_tags(parser, token, endtagname):
                     raise
             text_and_nodes.append(node)
 
-        if token.token_type == template.base.TOKEN_VAR:
+        if token.token_type == TokenType.VAR:
             text_and_nodes.append('}}')
 
     return text_and_nodes
@@ -76,6 +77,7 @@ class VerbatimNode(template.Node):
             {% trans "Your name is" %} {{first}} {{last}}
         {% endverbatim %}
     """
+
     def __init__(self, text_and_nodes):
         self.text_and_nodes = text_and_nodes
 
@@ -115,6 +117,7 @@ class HandlebarsNode(VerbatimNode):
         {% endtplhandlebars %}
 
     """
+
     def __init__(self, template_id, text_and_nodes):
         super(HandlebarsNode, self).__init__(text_and_nodes)
         self.template_id = template_id
@@ -135,7 +138,8 @@ class HandlebarsNode(VerbatimNode):
 
 @register.tag
 def tplhandlebars(parser, token):
-    text_and_nodes = verbatim_tags(parser, token, endtagname='endtplhandlebars')
+    text_and_nodes = verbatim_tags(
+        parser, token, endtagname='endtplhandlebars')
     # Extract template id from token
     tokens = token.split_contents()
     stripquote = lambda s: s[1:-1] if s[:1] == '"' else s
